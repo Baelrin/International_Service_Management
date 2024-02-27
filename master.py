@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QApplication,
@@ -9,7 +10,12 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PyQt5.QtCore import Qt
 from stable_diffusion import StableDiffusionModel
+
+# Настройка   логирования
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def generate_stable_diffusion_image(prompt, negative_prompt):
@@ -23,11 +29,15 @@ def generate_stable_diffusion_image(prompt, negative_prompt):
     Returns:
         str: The file path of the generated image.
     """
-    model = StableDiffusionModel()
-    generated_image = model.generate(prompt, negative_prompt)
-    image_path = os.path.join('generated_images', 'generated_image.png')
-    generated_image.save(image_path)
-    return image_path
+    try:
+        model = StableDiffusionModel()
+        generated_image = model.generate(prompt, negative_prompt)
+        image_path = os.path.join('generated_images', 'generated_image.png')
+        generated_image.save(image_path)
+        return image_path
+    except Exception as e:
+        logging.error(f"Error generating image: {e}")
+        return None
 
 
 class StableDiffusionGUI(QWidget):
@@ -65,11 +75,17 @@ class StableDiffusionGUI(QWidget):
         """
         Captures input from text fields, generates an image, and displays it in the GUI.
         """
-        prompt = self.prompt_input.toPlainText()
-        negative_prompt = self.negative_prompt_input.toPlainText()
-        result_image_path = generate_stable_diffusion_image(
-            prompt, negative_prompt)
-        self.result_label.setPixmap(QPixmap(result_image_path))
+        try:
+            prompt = self.prompt_input.toPlainText()
+            negative_prompt = self.negative_prompt_input.toPlainText()
+            if result_image_path := generate_stable_diffusion_image(
+                prompt, negative_prompt
+            ):
+                self.result_label.setPixmap(QPixmap(result_image_path))
+            else:
+                logging.error("Failed to generate image.")
+        except Exception as e:
+            logging.error(f"Error in generate_image: {e}")
 
 
 if __name__ == '__main__':
